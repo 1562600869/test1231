@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>轮椅篮球队管理系统</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header>
+        <h1>🏀 轮椅篮球队管理系统</h1>
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="players">球员管理</button>
+            <button class="tab-btn" data-tab="trainings">训练记录</button>
+            <button class="tab-btn" data-tab="games">比赛记录</button>
+            <button class="tab-btn" data-tab="stats">数据统计</button>
+        </nav>
+    </header>
+
+    <main>
+        <section id="tab-players" class="tab-content active">
+            <div class="card">
+                <h2>添加/编辑球员</h2>
+                <form id="player-form" class="form-grid">
+                    <input type="hidden" id="player-id">
+                    <label>昵称 <input type="text" id="player-nickname" required></label>
+                    <label>手机 <input type="text" id="player-phone"></label>
+                    <label>功能分级
+                        <select id="player-grade" required>
+                            <option value="10">1.0</option>
+                            <option value="15">1.5</option>
+                            <option value="20">2.0</option>
+                            <option value="25">2.5</option>
+                            <option value="30">3.0</option>
+                            <option value="35">3.5</option>
+                            <option value="40">4.0</option>
+                            <option value="45">4.5</option>
+                        </select>
+                    </label>
+                    <label>位置
+                        <select id="player-position" required>
+                            <option value="控卫">控卫</option>
+                            <option value="得分后卫">得分后卫</option>
+                            <option value="小前锋">小前锋</option>
+                            <option value="大前锋">大前锋</option>
+                            <option value="中锋">中锋</option>
+                        </select>
+                    </label>
+                    <label>状态
+                        <select id="player-status">
+                            <option value="在队">在队</option>
+                            <option value="伤停">伤停</option>
+                            <option value="退队">退队</option>
+                        </select>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" class="btn primary">保存球员</button>
+                        <button type="button" id="player-reset" class="btn">重置</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>球员列表</h2>
+                <div class="table-wrap">
+                    <table id="players-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>昵称</th>
+                                <th>手机</th>
+                                <th>分级</th>
+                                <th>位置</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-trainings" class="tab-content">
+            <div class="card">
+                <h2>添加/编辑训练</h2>
+                <form id="training-form" class="form-grid">
+                    <input type="hidden" id="training-id">
+                    <label>训练日期 <input type="date" id="training-date" required></label>
+                    <label>训练类型
+                        <select id="training-type" required>
+                            <option value="体能">体能</option>
+                            <option value="技术">技术</option>
+                            <option value="战术">战术</option>
+                            <option value="对抗">对抗</option>
+                        </select>
+                    </label>
+                    <label>时长（分钟） <input type="number" id="training-duration" min="1" required></label>
+                    <label class="full">出席球员
+                        <div id="training-attendance" class="checkbox-list"></div>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" class="btn primary">保存训练</button>
+                        <button type="button" id="training-reset" class="btn">重置</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>训练记录列表</h2>
+                <div class="table-wrap">
+                    <table id="trainings-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>日期</th>
+                                <th>类型</th>
+                                <th>时长(分)</th>
+                                <th>出席球员</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-games" class="tab-content">
+            <div class="card">
+                <h2>添加/编辑比赛</h2>
+                <form id="game-form" class="form-grid">
+                    <input type="hidden" id="game-id">
+                    <label>对手队名 <input type="text" id="game-opponent" required></label>
+                    <label>比赛日期 <input type="date" id="game-date" required></label>
+                    <label>主客场
+                        <select id="game-home-away">
+                            <option value="主场">主场</option>
+                            <option value="客场">客场</option>
+                        </select>
+                    </label>
+                    <label>我方得分 <input type="number" id="game-our-score" min="0" value="0"></label>
+                    <label>对方得分 <input type="number" id="game-opp-score" min="0" value="0"></label>
+                    <label class="full">上场球员
+                        <div id="game-roster" class="checkbox-list"></div>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" class="btn primary">保存比赛</button>
+                        <button type="button" id="game-reset" class="btn">重置</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>比赛记录列表</h2>
+                <div class="table-wrap">
+                    <table id="games-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>日期</th>
+                                <th>对手</th>
+                                <th>主客场</th>
+                                <th>比分</th>
+                                <th>结果</th>
+                                <th>上场球员</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-stats" class="tab-content">
+            <div class="card">
+                <h2>数据统计</h2>
+                <div class="stats-grid">
+                    <div class="stats-box">
+                        <h3>胜负场次统计</h3>
+                        <div id="win-loss-stats" class="stats-row"></div>
+                    </div>
+                    <div class="stats-box">
+                        <h3>本月训练类型统计</h3>
+                        <div id="training-month-stats" class="stats-row"></div>
+                    </div>
+                    <div class="stats-box">
+                        <h3>球员本月出勤（训练+比赛）</h3>
+                        <label>选择球员
+                            <select id="stats-player-select">
+                                <option value="">请选择...</option>
+                            </select>
+                        </label>
+                        <div id="player-month-stats" class="stats-row"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
