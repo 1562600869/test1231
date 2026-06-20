@@ -9,6 +9,10 @@ from datetime import datetime
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'team.db')
 
+VALID_TRAINING_TYPES = {'体能', '技术', '战术', '对抗'}
+VALID_PLAYER_STATUS = {'在队', '伤停', '退队'}
+ACTIVE_STATUS = '在队'
+
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -194,10 +198,10 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == '/api/stats/win-loss':
             conn = get_db()
-            wins = conn.execute("SELECT COUNT(*) FROM games WHERE our_score > opp_score").fetchone()[0]
-            losses = conn.execute("SELECT COUNT(*) FROM games WHERE our_score < opp_score").fetchone()[0]
-            draws = conn.execute("SELECT COUNT(*) FROM games WHERE our_score = opp_score").fetchone()[0]
-            total = conn.execute("SELECT COUNT(*) FROM games").fetchone()[0]
+            wins = conn.execute("SELECT COALESCE(COUNT(*), 0) FROM games WHERE our_score > opp_score").fetchone()[0]
+            losses = conn.execute("SELECT COALESCE(COUNT(*), 0) FROM games WHERE our_score < opp_score").fetchone()[0]
+            draws = conn.execute("SELECT COALESCE(COUNT(*), 0) FROM games WHERE our_score = opp_score").fetchone()[0]
+            total = conn.execute("SELECT COALESCE(COUNT(*), 0) FROM games").fetchone()[0]
             conn.close()
             self._send_json({'wins': wins, 'losses': losses, 'draws': draws, 'total': total})
             return
@@ -226,13 +230,25 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             if path == '/api/trainings':
+                ttype = body.get('ttype', '')
+                if ttype not in VALID_TRAINING_TYPES:
+                    raise ValueError(f'训练类型必须是: {", ".join(sorted(VALID_TRAINING_TYPES))}')
+                att_ids = body.get('attendance_ids', []) or []
+                if att_ids:
+                    placeholders = ','.join(['?'] * len(att_ids))
+                    invalid_players = conn.execute(
+                        f'SELECT id, nickname, status FROM players WHERE id IN ({placeholders}) AND status != ?',
+                        [int(p) for p in att_ids] + [ACTIVE_STATUS]
+                    ).fetchall()
+                    if invalid_players:
+                        names = ', '.join([f"{p['nickname']}({p['status']})" for p in invalid_players])
+                        raise ValueError(f'只有在队球员可出席训练，以下球员状态不符: {names}')
                 cur = conn.execute(
                     'INSERT INTO trainings (tdate, ttype, duration) VALUES (?, ?, ?)',
-                    (body.get('tdate', ''), body.get('ttype', ''),
+                    (body.get('tdate', ''), ttype,
                      int(body.get('duration', 0)))
                 )
                 tid = cur.lastrowid
-                att_ids = body.get('attendance_ids', []) or []
                 for pid in att_ids:
                     conn.execute(
                         'INSERT OR IGNORE INTO training_attendance (training_id, player_id) VALUES (?, ?)',
@@ -251,6 +267,16 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             if path == '/api/games':
+                roster_ids = body.get('roster_ids', []) or []
+                if roster_ids:
+                    placeholders = ','.join(['?'] * len(roster_ids))
+                    invalid_players = conn.execute(
+                        f'SELECT id, nickname, status FROM players WHERE id IN ({placeholders}) AND status != ?',
+                        [int(p) for p in roster_ids] + [ACTIVE_STATUS]
+                    ).fetchall()
+                    if invalid_players:
+                        names = ', '.join([f"{p['nickname']}({p['status']})" for p in invalid_players])
+                        raise ValueError(f'只有在队球员可上场比赛，以下球员状态不符: {names}')
                 cur = conn.execute(
                     'INSERT INTO games (opponent, gdate, home_away, our_score, opp_score) VALUES (?, ?, ?, ?, ?)',
                     (body.get('opponent', ''), body.get('gdate', ''),
@@ -258,7 +284,6 @@ class Handler(BaseHTTPRequestHandler):
                      int(body.get('our_score', 0)), int(body.get('opp_score', 0)))
                 )
                 gid = cur.lastrowid
-                roster_ids = body.get('roster_ids', []) or []
                 for pid in roster_ids:
                     conn.execute(
                         'INSERT OR IGNORE INTO game_roster (game_id, player_id) VALUES (?, ?)',
@@ -312,13 +337,25 @@ class Handler(BaseHTTPRequestHandler):
                     return
 
                 if resource == 'trainings':
+                    ttype = body.get('ttype', '')
+                    if ttype not in VALID_TRAINING_TYPES:
+                        raise ValueError(f'训练类型必须是: {", ".join(sorted(VALID_TRAINING_TYPES))}')
+                    att_ids = body.get('attendance_ids', []) or []
+                    if att_ids:
+                        placeholders = ','.join(['?'] * len(att_ids))
+                        invalid_players = conn.execute(
+                            f'SELECT id, nickname, status FROM players WHERE id IN ({placeholders}) AND status != ?',
+                            [int(p) for p in att_ids] + [ACTIVE_STATUS]
+                        ).fetchall()
+                        if invalid_players:
+                            names = ', '.join([f"{p['nickname']}({p['status']})" for p in invalid_players])
+                            raise ValueError(f'只有在队球员可出席训练，以下球员状态不符: {names}')
                     conn.execute(
                         'UPDATE trainings SET tdate=?, ttype=?, duration=? WHERE id=?',
-                        (body.get('tdate', ''), body.get('ttype', ''),
+                        (body.get('tdate', ''), ttype,
                          int(body.get('duration', 0)), rid)
                     )
                     conn.execute('DELETE FROM training_attendance WHERE training_id = ?', (rid,))
-                    att_ids = body.get('attendance_ids', []) or []
                     for pid in att_ids:
                         conn.execute(
                             'INSERT OR IGNORE INTO training_attendance (training_id, player_id) VALUES (?, ?)',
@@ -340,6 +377,16 @@ class Handler(BaseHTTPRequestHandler):
                     return
 
                 if resource == 'games':
+                    roster_ids = body.get('roster_ids', []) or []
+                    if roster_ids:
+                        placeholders = ','.join(['?'] * len(roster_ids))
+                        invalid_players = conn.execute(
+                            f'SELECT id, nickname, status FROM players WHERE id IN ({placeholders}) AND status != ?',
+                            [int(p) for p in roster_ids] + [ACTIVE_STATUS]
+                        ).fetchall()
+                        if invalid_players:
+                            names = ', '.join([f"{p['nickname']}({p['status']})" for p in invalid_players])
+                            raise ValueError(f'只有在队球员可上场比赛，以下球员状态不符: {names}')
                     conn.execute(
                         'UPDATE games SET opponent=?, gdate=?, home_away=?, our_score=?, opp_score=? WHERE id=?',
                         (body.get('opponent', ''), body.get('gdate', ''),
@@ -347,7 +394,6 @@ class Handler(BaseHTTPRequestHandler):
                          int(body.get('our_score', 0)), int(body.get('opp_score', 0)), rid)
                     )
                     conn.execute('DELETE FROM game_roster WHERE game_id = ?', (rid,))
-                    roster_ids = body.get('roster_ids', []) or []
                     for pid in roster_ids:
                         conn.execute(
                             'INSERT OR IGNORE INTO game_roster (game_id, player_id) VALUES (?, ?)',
